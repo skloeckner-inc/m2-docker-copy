@@ -1,0 +1,4 @@
+# Create keypair and instance
+keypair = create keypair name={keypairname}
+magento2-instance = create instance type=t2.medium name=magento2-instance subnet=@magento2-subnet keypair=$keypair securitygroup=@public-http-secgroup userdata={userdata}
+attach securitygroup id=@ssh-whitelist instance=$magento2-instance

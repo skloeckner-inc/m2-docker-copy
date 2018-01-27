@@ -1,0 +1,39 @@
+# Title: Magento 2 deployment templates for awless.io
+# Tags: infra
+
+# VPC and its Internet gateway
+vpc = create vpc cidr=10.0.0.0/16 name=magento2-vpc
+igw = create internetgateway
+attach internetgateway id=$igw vpc=$vpc
+
+# Subnet and its route table
+subnet = create subnet cidr=10.0.0.0/24 vpc=$vpc name=magento2-subnet
+update subnet id=$subnet public=true
+routetable = create routetable vpc=$vpc
+attach routetable subnet=$subnet id=$routetable
+create route cidr=0.0.0.0/0 gateway=$igw table=$routetable
+
+# Create 2 security groups and authorize access from the Internet for port 80 and 443
+secgroup = create securitygroup vpc=$vpc description="authorize http/s from internet" name=public-http-secgroup
+update securitygroup id=$secgroup inbound=authorize protocol=tcp cidr=0.0.0.0/0 portrange=443
+update securitygroup id=$secgroup inbound=authorize protocol=tcp cidr=0.0.0.0/0 portrange=80
+
+sshsecgroup = create securitygroup vpc=$vpc description="authorize ssh from origin IP" name=ssh-whitelist
+update securitygroup id=$sshsecgroup inbound=authorize protocol=tcp cidr={myip}/32 portrange=22
+
+###############
+
+# Two private subnet to constitute the dbsubnetgroup hosting the DB
+privsubnet1 = create subnet cidr=10.0.11.0/24 vpc=$vpc name=mysql-priv-subnet1 availabilityzone={az1}
+privsubnet2 = create subnet cidr=10.0.12.0/24 vpc=$vpc name=mysql-priv-subnet2 availabilityzone={az2}
+attach routetable subnet=$privsubnet1 id=$routetable
+attach routetable subnet=$privsubnet2 id=$routetable
+
+# Create database security group (authorize access from private subnet to port 3306)
+dbsec = create securitygroup name=m2-db-secgroup vpc=$vpc description="authorize mysql port 3306 from private subnets"
+update securitygroup id=$dbsec inbound=authorize protocol=tcp cidr=10.0.0.0/24 portrange=3306
+update securitygroup id=$dbsec inbound=authorize protocol=tcp cidr={myip}/32 portrange=3306
+
+# Create Mysql in subnetgroup and database for magento instance
+dbsub = create dbsubnetgroup name=magento2-dbsubnet description="subnet for magento2 database" subnets=[$privsubnet1, $privsubnet2]
+create database engine=mysql size=8 type=db.t2.micro id={dbname} password={dbpassword} username={dbusername} dbname={dbname} vpcsecuritygroups=$dbsec subnetgroup=$dbsub
