@@ -7,7 +7,6 @@
 PUBLIC_IP=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
 
 # Variables from
-BRANCH="{{.Variables.branch}}"
 
 DBHOST="{{.Variables.dbhost}}"
 DBNAME="{{.Variables.dbname}}"
@@ -15,7 +14,7 @@ DBUSER="{{.Variables.dbusername}}"
 DBPASS="{{.Variables.dbpassword}}"
 maguser="{{.Variables.maguser}}"
 magpw="{{.Variables.magpw}}"
-magver="{{.Variables.magver}}"
+
 
 # Import docker gpg key for signed Docker packages
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
@@ -59,8 +58,8 @@ magento/project-community-edition \
 
 # download dockerize
 cd /root/magento2
-git clone -b awless https://github.com/Incipio-Ecommerce/m2-docker
-rsync -av m2-docker/* .
+git clone https://github.com/skloeckner-inc/m2-docker-copy
+rsync -av m2-docker-copy/* .
 # mv m2-docker/.env .env
 rm -rf m2-docker
 chmod +x bin/console
